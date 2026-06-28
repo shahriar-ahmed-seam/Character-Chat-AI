@@ -5,6 +5,29 @@ clients — a web PWA, an Android app, and a Telegram bot — all backed by one 
 FastAPI service. All business logic (persona injection, memory, model routing, history)
 lives in the backend; the clients only render UI and call the API.
 
+## Live deployment
+
+- **Telegram bot:** [@CharacterChatX_bot](https://t.me/CharacterChatX_bot) — open it,
+  send `/start` to list characters, `/use luna` (or `elias` / `sergeant_kane`) to pick
+  one, then just chat.
+- **Backend API:** hosted on Render (`https://chat-with-ai-x.onrender.com`), backed by
+  Neon Postgres, using OpenRouter for inference. API-key protected.
+- **Android app:** download the latest `.apk` from the repo's
+  [Releases](../../releases) page and install it on your phone.
+- **Web app:** deployed on Vercel.
+
+### Telegram bot commands
+
+| Command | What it does |
+|---------|--------------|
+| `/start` | List the available characters |
+| `/use <id>` | Pick a character to talk to (e.g. `/use elias`) |
+| `/help` | Show characters and usage |
+
+The bot maps each Telegram chat to a persistent session, so it remembers your
+conversation. The webhook is verified with a secret token, and the bot reaches the chat
+logic inside the backend directly (it does not need the public API key).
+
 ## Architecture
 
 One shared backend holds all logic; the three clients are thin and call the same API.
