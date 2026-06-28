@@ -11,13 +11,23 @@ import time
 
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy import text
+from sqlalchemy.pool import NullPool
 
 
 def _engine_kwargs(database_url: str) -> dict:
     kwargs: dict = {"echo": False, "pool_pre_ping": True}
-    # Managed Postgres (e.g. Neon) requires TLS; asyncpg takes it via connect_args.
-    if database_url.startswith("postgresql+asyncpg://") and "localhost" not in database_url:
-        kwargs["connect_args"] = {"ssl": True}
+    if database_url.startswith("postgresql+asyncpg://"):
+        connect_args: dict = {}
+        # Managed Postgres (e.g. Neon) requires TLS.
+        if "localhost" not in database_url and "127.0.0.1" not in database_url:
+            connect_args["ssl"] = True
+        # Neon's pooler runs PgBouncer in transaction mode; asyncpg prepared
+        # statements break there, so disable the statement cache. NullPool lets
+        # PgBouncer (or Neon's auto-suspend) own connection lifecycle.
+        connect_args["statement_cache_size"] = 0
+        kwargs["connect_args"] = connect_args
+        kwargs["poolclass"] = NullPool
+        kwargs.pop("pool_pre_ping", None)
     return kwargs
 
 

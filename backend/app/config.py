@@ -59,8 +59,9 @@ class Settings:
 def _normalize_database_url(raw: str) -> str:
     """Make a connection string usable by SQLAlchemy's async drivers.
 
-    Neon hands out `postgresql://...?sslmode=require`. asyncpg does not understand
-    the libpq `sslmode` query parameter, so we translate it.
+    Neon hands out `postgresql://...?sslmode=require&channel_binding=require`. asyncpg
+    does not understand the libpq `sslmode`/`channel_binding` query parameters, so we
+    strip them (TLS is enabled in db.py via connect_args instead).
     """
     url = raw.strip()
     if url.startswith("postgresql://"):
@@ -68,13 +69,15 @@ def _normalize_database_url(raw: str) -> str:
     elif url.startswith("postgres://"):
         url = url.replace("postgres://", "postgresql+asyncpg://", 1)
 
-    # asyncpg uses `ssl` not `sslmode`. Strip sslmode and let db.py pass ssl via
-    # connect_args when the host looks like a managed (non-local) Postgres.
-    if "asyncpg" in url and "sslmode=" in url:
-        # remove the sslmode parameter; SSL is enabled in db.py connect_args
+    if "asyncpg" in url:
         import re
 
-        url = re.sub(r"[?&]sslmode=[^&]+", "", url)
+        for param in ("sslmode", "channel_binding", "options"):
+            url = re.sub(rf"[?&]{param}=[^&]*", "", url)
+        # Repair the query-string separators after removals.
+        if "?" not in url and "&" in url:
+            url = url.replace("&", "?", 1)
+        url = url.rstrip("?&")
     return url
 
 

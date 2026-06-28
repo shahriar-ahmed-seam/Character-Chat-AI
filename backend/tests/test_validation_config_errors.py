@@ -8,7 +8,7 @@ from hypothesis import given, settings
 from hypothesis import strategies as st
 
 from app.chat import MAX_MESSAGE_CHARS, validate_message
-from app.config import ConfigurationError, load_settings
+from app.config import ConfigurationError, load_settings, _normalize_database_url
 from app.errors import MessageInvalid, redact
 
 ITER = settings(max_examples=100)
@@ -101,3 +101,26 @@ def test_property_27_redaction(secret):
         out = redact(s)
         assert "[REDACTED]" in out
         assert secret not in out
+
+
+def test_normalize_neon_pooled_url():
+    raw = (
+        "postgresql://authenticator:pw@ep-x-pooler.c-9.us-east-1.aws.neon.tech/"
+        "neondb?sslmode=require&channel_binding=require"
+    )
+    out = _normalize_database_url(raw)
+    assert out.startswith("postgresql+asyncpg://")
+    assert "sslmode" not in out
+    assert "channel_binding" not in out
+    assert out.endswith("/neondb")
+
+
+def test_normalize_keeps_sqlite():
+    raw = "sqlite+aiosqlite:///./dev.db"
+    assert _normalize_database_url(raw) == raw
+
+
+def test_normalize_strips_only_known_params():
+    raw = "postgresql://u:p@host/db?sslmode=require"
+    out = _normalize_database_url(raw)
+    assert out == "postgresql+asyncpg://u:p@host/db"
