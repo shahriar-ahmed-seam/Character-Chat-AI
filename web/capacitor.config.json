@@ -1,0 +1,8 @@
+{
+  "appId": "ai.charchat.app",
+  "appName": "Character Chat AI",
+  "webDir": "dist",
+  "server": {
+    "androidScheme": "https"
+  }
+}

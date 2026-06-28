@@ -1,0 +1,45 @@
+# Render Blueprint for the Character Chat AI backend.
+# In the Render dashboard: New > Blueprint, point it at this repo, then fill in the
+# environment variables marked `sync: false` (they are kept out of source control).
+services:
+  - type: web
+    name: character-chat-api
+    runtime: docker
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
+    plan: free
+    healthCheckPath: /health
+    envVars:
+      - key: DATABASE_URL          # Neon connection string
+        sync: false
+      - key: LLM_PROVIDER
+        value: openrouter
+      - key: LLM_BASE_URL
+        value: https://openrouter.ai/api/v1
+      - key: LLM_CHAT_MODEL
+        value: meta-llama/llama-3.3-70b-instruct
+      - key: LLM_EMBED_MODEL
+        value: nomic-embed-text
+      - key: LLM_API_KEY           # OpenRouter API key (sk-or-...)
+        sync: false
+      - key: LLM_TIMEOUT_SECONDS
+        value: "60"
+      - key: SHORT_TERM_N
+        value: "20"
+      - key: LONG_TERM_MEMORY_ENABLED
+        value: "false"
+      - key: AUTH_ENABLED
+        # Off for the initial deploy so you can smoke-test the public URL.
+        # Set to "true" for final launch (also set API_KEYS below and the web
+        # app's VITE_API_KEY to match) so the backend isn't open to the public.
+        value: "false"
+      - key: API_KEYS              # comma-separated client keys
+        sync: false
+      - key: RATE_LIMIT_MAX_REQUESTS
+        value: "60"
+      - key: RATE_LIMIT_WINDOW_SECONDS
+        value: "60"
+      - key: TELEGRAM_BOT_TOKEN    # optional; leave blank to disable the bot
+        sync: false
+      - key: TELEGRAM_WEBHOOK_SECRET
+        sync: false

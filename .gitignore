@@ -1,0 +1,27 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.pytest_cache/
+.hypothesis/
+
+# Env / secrets
+.env
+*.env
+!*.env.example
+
+# Local dev database
+*.db
+*.sqlite3
+
+# Node / web
+node_modules/
+dist/
+.vite/
+build/
+
+# OS / editor
+.DS_Store
+Thumbs.db

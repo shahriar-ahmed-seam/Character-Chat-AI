@@ -1,0 +1,11 @@
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.hypothesis/
+tests/
+dev.db
+*.db
+.env
+smoke_test.py
+gen_icons.py
