@@ -1,0 +1,82 @@
+name: Release APK
+
+# Builds the Android APK and publishes it as a downloadable GitHub Release.
+# Trigger by pushing a version tag (e.g. v1.0.0) or from the Actions tab.
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Release version tag (e.g. v1.0.0)"
+        required: true
+        default: "v1.0.0"
+      api_base_url:
+        description: "Backend API base URL to bake into the app"
+        required: true
+        default: "https://chat-with-ai-x.onrender.com"
+
+permissions:
+  contents: write
+
+jobs:
+  release-apk:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install web dependencies
+        working-directory: web
+        run: npm ci
+
+      - name: Build web app
+        working-directory: web
+        env:
+          VITE_API_BASE_URL: ${{ github.event.inputs.api_base_url || 'https://chat-with-ai-x.onrender.com' }}
+          VITE_API_KEY: ${{ secrets.VITE_API_KEY }}
+        run: npm run build
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Sync Capacitor
+        working-directory: web
+        run: npx cap sync android
+
+      - name: Build debug APK
+        working-directory: web/android
+        run: |
+          chmod +x ./gradlew
+          ./gradlew assembleDebug --no-daemon --stacktrace
+
+      - name: Rename APK
+        run: |
+          VER="${{ github.event.inputs.version || github.ref_name }}"
+          cp web/android/app/build/outputs/apk/debug/app-debug.apk "character-chat-${VER}.apk"
+
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.event.inputs.version || github.ref_name }}
+          name: Character Chat AI ${{ github.event.inputs.version || github.ref_name }}
+          body: |
+            Android app for Character Chat AI.
+
+            **Install:** download the `.apk` below on your Android phone and open it
+            (enable "Install from unknown sources" if prompted). It connects to the
+            hosted backend automatically.
+          files: character-chat-*.apk
+          fail_on_unmatched_files: true
