@@ -1,0 +1,66 @@
+name: Build Android APK
+
+# Builds the Android app in the cloud (no Android Studio needed) and uploads the
+# APK as a downloadable artifact. Run it from the Actions tab ("Run workflow"), or
+# it runs automatically when the web app changes.
+
+on:
+  workflow_dispatch:
+    inputs:
+      api_base_url:
+        description: "Backend API base URL to bake into the app"
+        required: true
+        default: "https://chat-with-ai-x.onrender.com"
+  push:
+    branches: [main]
+    paths:
+      - "web/**"
+      - ".github/workflows/android-apk.yml"
+
+jobs:
+  build-apk:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install web dependencies
+        working-directory: web
+        run: npm ci
+
+      - name: Build web app
+        working-directory: web
+        env:
+          VITE_API_BASE_URL: ${{ github.event.inputs.api_base_url || 'https://chat-with-ai-x.onrender.com' }}
+          VITE_API_KEY: ${{ secrets.VITE_API_KEY }}
+        run: npm run build
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Sync Capacitor (copy web build into the Android project)
+        working-directory: web
+        run: npx cap sync android
+
+      - name: Build debug APK
+        working-directory: web/android
+        run: |
+          chmod +x ./gradlew
+          ./gradlew assembleDebug --no-daemon --stacktrace
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: character-chat-apk
+          path: web/android/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
