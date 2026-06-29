@@ -25,3 +25,6 @@ build/
 # OS / editor
 .DS_Store
 Thumbs.db
+
+# Kiro spec/workspace files (kept local, not published)
+.kiro/
